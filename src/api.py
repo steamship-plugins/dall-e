@@ -4,6 +4,7 @@ import json
 import openai
 from pydantic import Field
 from steamship import Steamship, Block, MimeTypes
+from steamship.data.block import BlockUploadType
 from steamship.invocable import Config, InvocableResponse, InvocationContext
 from steamship.plugin.generator import Generator
 from steamship.plugin.inputs.raw_block_and_tag_plugin_input import RawBlockAndTagPluginInput
@@ -78,7 +79,7 @@ class DallEPlugin(Generator):
         # Fetch data for images
         urls = [obj['url'] for obj in openai_result['data']]
 
-        return [Block(url=url, mime_type=MimeTypes.PNG) for url in urls]
+        return [Block(url=url, mime_type=MimeTypes.PNG, upload_type=BlockUploadType.URL) for url in urls]
 
 
 

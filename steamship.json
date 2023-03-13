@@ -1,7 +1,7 @@
 {
 	"type": "plugin",
 	"handle": "dall-e",
-	"version": "0.0.1",
+	"version": "0.0.1-rc.2",
 	"description": "",
 	"author": "dave",
 	"entrypoint": "Unused",
@@ -58,7 +58,6 @@
 		"authorEmail": null,
 		"authorTwitter": null,
 		"authorUrl": null,
-		"tags": [
-		]
+		"tags": []
 	}
 }
