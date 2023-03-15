@@ -6,3 +6,4 @@ black==22.3.0
 flake8
 pydocstyle
 pillow
+filetype
