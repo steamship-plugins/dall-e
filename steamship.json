@@ -1,7 +1,7 @@
 {
 	"type": "plugin",
 	"handle": "dall-e",
-	"version": "0.0.1-rc.2",
+	"version": "0.0.1-rc.7",
 	"description": "",
 	"author": "dave",
 	"entrypoint": "Unused",
@@ -25,12 +25,12 @@
 		},
 		"n": {
 			"type": "number",
-			"description": "How many images to generate for each prompt.",
+			"description": "Default number of images to generate for each prompt.",
 			"default": 1
 		},
 		"size": {
 			"type": "string",
-			"description": "The size of the ouptut images.  May be \"1024x1024\", \"512x512\", or \"256x256\".",
+			"description": "Default size of the output images. Must be one of:['1024x1024', '512x512', '256x256'].",
 			"default": "1024x1024"
 		},
 		"max_retries": {
