@@ -4,7 +4,7 @@ from steamship import Block, TaskState
 from steamship.plugin.inputs.raw_block_and_tag_plugin_input import RawBlockAndTagPluginInput
 from steamship.plugin.request import PluginRequest
 
-from src.api import DallEPlugin
+from api import DallEPlugin
 
 
 def test_generator():
@@ -40,7 +40,7 @@ def test_generator_overrides():
 
 def test_generator_validation():
     with pytest.raises(ValidationError):
-        DallEPlugin(config={"n": 123})
+        DallEPlugin(config={"n": 133})
 
     with pytest.raises(ValidationError):
         DallEPlugin(config={"size": "blahadlsadf"})
