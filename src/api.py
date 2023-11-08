@@ -217,7 +217,6 @@ class DallEPlugin(Generator):
         return InvocableResponse(data=RawBlockAndTagPluginOutput(blocks=generated_blocks))
 
     def _inputs_from_config_and_runtime_params(self, options: Optional[dict]) -> dict:
-
         if options is not None and "model" in options:
             raise SteamshipError(
                 "Model may not be overridden in runtime options. "
