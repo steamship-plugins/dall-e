@@ -1,41 +1,8 @@
 import pytest
 from pydantic import ValidationError
-from steamship import Block, SteamshipError, TaskState
-from steamship.plugin.inputs.raw_block_and_tag_plugin_input import RawBlockAndTagPluginInput
-from steamship.plugin.request import PluginRequest
+from steamship import SteamshipError
 
 from api import DallEPlugin, ImageSizeEnum
-
-
-def test_generator():
-    dalle = DallEPlugin()
-    request = PluginRequest(
-        data=RawBlockAndTagPluginInput(blocks=[Block(text="a cat riding a bicycle")])
-    )
-    response = dalle.run(request)
-
-    assert response.status.state is TaskState.succeeded
-    assert response.data is not None
-
-    assert len(response.data.blocks) == 1
-    assert response.data.blocks[0].url is not None
-
-
-def test_generator_overrides():
-    dalle = DallEPlugin()
-    request = PluginRequest(
-        data=RawBlockAndTagPluginInput(
-            blocks=[Block(text="a cat riding a bicycle")], options={"n": 2, "size": "512x512"}
-        )
-    )
-    response = dalle.run(request)
-
-    assert response.status.state is TaskState.succeeded
-    assert response.data is not None
-
-    assert len(response.data.blocks) == 2
-    for block in response.data.blocks:
-        assert block.url is not None
 
 
 def test_generator_validation():

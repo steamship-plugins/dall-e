@@ -1,7 +1,7 @@
 {
 	"type": "plugin",
 	"handle": "dall-e",
-	"version": "0.0.1-rc.16",
+	"version": "0.0.1-rc.17",
 	"description": "",
 	"author": "dave",
 	"entrypoint": "Unused",
@@ -10,7 +10,7 @@
 		"isTrainable": false,
 		"transport": "jsonOverHttp",
 		"type": "generator",
-		"streaming": false
+		"streaming": true
 	},
 	"build_config": {
 		"ignore": [
