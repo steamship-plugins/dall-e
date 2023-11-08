@@ -1,7 +1,7 @@
 {
 	"type": "plugin",
 	"handle": "dall-e",
-	"version": "0.0.1-rc.7",
+	"version": "0.0.1-rc.16",
 	"description": "",
 	"author": "dave",
 	"entrypoint": "Unused",
@@ -9,7 +9,8 @@
 	"plugin": {
 		"isTrainable": false,
 		"transport": "jsonOverHttp",
-		"type": "generator"
+		"type": "generator",
+		"streaming": false
 	},
 	"build_config": {
 		"ignore": [
@@ -23,6 +24,11 @@
 			"description": "An openAI API key to use. If left default, will use Steamship's API key.",
 			"default": ""
 		},
+		"model": {
+			"type": "string",
+			"description": "Model to use for image generation. Must be one of: ['dall-e-2', 'dall-e-3']",
+			"default": "dall-e-2"
+		},
 		"n": {
 			"type": "number",
 			"description": "Default number of images to generate for each prompt.",
@@ -30,7 +36,7 @@
 		},
 		"size": {
 			"type": "string",
-			"description": "Default size of the output images. Must be one of:['1024x1024', '512x512', '256x256'].",
+			"description": "Default size of the output images. Must be one of:['1024x1024', '512x512', '256x256', '1792x1024', '1024x1792'].",
 			"default": "1024x1024"
 		},
 		"max_retries": {
@@ -42,6 +48,16 @@
 			"type": "number",
 			"description": "Timeout for requests to OpenAI completion API. Default is 600 seconds.",
 			"default": 600
+		},
+		"quality": {
+			"type": "string",
+			"description": "The quality of the image that will be generated. Must be one of: ['standard', 'hd'].'hd' creates images with finer details and greater consistency across the image. This param is only supported for `dall-e-3`.",
+			"default": "standard"
+		},
+		"style": {
+			"type": "string",
+			"description": "The style of the generated images. Must be one of: ['vivid', 'natural']. Vivid causes the model to lean towards generating hyper-real and dramatic images. Natural causes the model to produce more natural, less hyper-real looking images. This param is only supported for `dall-e-3`.",
+			"default": "vivid"
 		}
 	},
 	"steamshipRegistry": {

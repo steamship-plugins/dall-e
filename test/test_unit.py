@@ -1,10 +1,10 @@
 import pytest
 from pydantic import ValidationError
-from steamship import Block, TaskState
+from steamship import Block, SteamshipError, TaskState
 from steamship.plugin.inputs.raw_block_and_tag_plugin_input import RawBlockAndTagPluginInput
 from steamship.plugin.request import PluginRequest
 
-from api import DallEPlugin
+from api import DallEPlugin, ImageSizeEnum
 
 
 def test_generator():
@@ -45,14 +45,38 @@ def test_generator_validation():
     with pytest.raises(ValidationError):
         DallEPlugin(config={"size": "blahadlsadf"})
 
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(SteamshipError) as e:
         dalle = DallEPlugin()
         dalle.generate_with_retry(user="foo", prompt="bar", options={"n": 12})
 
-    assert "received: 12" in str(e)
+    assert "Invalid runtime parameterization of plugin" in str(e)
 
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(SteamshipError) as e:
         dalle = DallEPlugin()
         dalle.generate_with_retry(user="foo", prompt="bar", options={"size": "fadsfadsf"})
 
-    assert "fadsfadsf" in str(e)
+    assert "Invalid runtime parameterization of plugin" in str(e)
+
+    with pytest.raises(ValidationError):
+        DallEPlugin(config={"n": 4, "model": "dall-e-3"})
+
+    with pytest.raises(ValidationError):
+        DallEPlugin(config={"model": "dall-e-3", "style": "crazytown"})
+
+    with pytest.raises(ValidationError):
+        DallEPlugin(config={"model": "dall-e-3", "quality": "just ok"})
+
+    with pytest.raises(ValidationError):
+        DallEPlugin(config={"model": "dall-e-2", "size": ImageSizeEnum.large_portrait})
+
+    with pytest.raises(ValidationError):
+        DallEPlugin(config={"model": "dall-e-3", "size": ImageSizeEnum.medium})
+
+
+def test_runtime_config_validation_returns_values():
+    plugin = DallEPlugin(config={"model": "dall-e-3"})
+    config_dict = plugin._inputs_from_config_and_runtime_params(options={"n": 1})
+    assert config_dict.get("quality")
+    assert config_dict.get("size") == ImageSizeEnum.large
+    assert config_dict.get("n") == 1
+    assert config_dict.get("style")
