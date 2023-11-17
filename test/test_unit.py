@@ -80,3 +80,10 @@ def test_runtime_config_validation_returns_values():
     assert config_dict.get("size") == ImageSizeEnum.large
     assert config_dict.get("n") == 1
     assert config_dict.get("style")
+
+
+def test_no_override_of_model_at_runtime():
+    plugin = DallEPlugin(config={"model": "dall-e-2"})
+
+    with pytest.raises(SteamshipError):
+        plugin._inputs_from_config_and_runtime_params(options={"model": "dall-e-3"})

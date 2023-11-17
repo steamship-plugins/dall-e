@@ -217,6 +217,13 @@ class DallEPlugin(Generator):
         return InvocableResponse(data=RawBlockAndTagPluginOutput(blocks=generated_blocks))
 
     def _inputs_from_config_and_runtime_params(self, options: Optional[dict]) -> dict:
+
+        if options is not None and "model" in options:
+            raise SteamshipError(
+                "Model may not be overridden in runtime options. "
+                "Please configure 'model' when creating a plugin instance."
+            )
+
         temp_config = DallEPlugin.DallEPluginConfig(**self.config.dict())
         temp_config.extend_with_dict(options, overwrite=True)
         validated_config = DallEPlugin.DallEPluginConfig(**temp_config.dict())
