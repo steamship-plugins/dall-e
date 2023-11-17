@@ -7,7 +7,7 @@ import openai
 import requests
 from openai import OpenAI
 from pydantic import Field, ValidationError, validator
-from steamship import Block, MimeTypes, Steamship, SteamshipError
+from steamship import MimeTypes, Steamship, SteamshipError
 from steamship.invocable import Config, InvocableResponse, InvocationContext
 from steamship.plugin.inputs.raw_block_and_tag_plugin_input import RawBlockAndTagPluginInput
 from steamship.plugin.inputs.raw_block_and_tag_plugin_input_with_preallocated_blocks import (
@@ -85,15 +85,15 @@ class DallEPlugin(StreamingGenerator):
         )
         model: str = Field(
             default="dall-e-2",
-            description=f"Model to use for image generation. Must be one of: {ModelEnum.list()}",
+            description=f"Model to use for image generation. Must be one of: {ModelEnum.list()}. Not available for runtime override.",
         )
         n: int = Field(
             1, gt=0, lt=11, description="Default number of images to generate for each prompt."
         )
         size: ImageSizeEnum = Field(
             "1024x1024",
-            description="Default size of the output images. Must be one of:"
-            f"{ImageSizeEnum.list()}.",
+            description="Size of the output images. Must be one of:"
+            f"{ImageSizeEnum.list()}. Not available for runtime override.",
         )
         max_retries: int = Field(
             8, gte=0, lt=16, description="Maximum number of retries to make when generating."
@@ -179,8 +179,8 @@ class DallEPlugin(StreamingGenerator):
 
     def generate_with_retry(
         self, user: str, prompt: str, options: Optional[dict] = None
-    ) -> List[Block]:
-        """Generate image(s) with the options provided."""
+    ) -> List[str]:
+        """Generate image(s) with the options provided. Returns URLs of generated images."""
         logging.debug(f"Making OpenAI dall-e call on behalf of user with id: {user}")
 
         def _generate_with_retry(image_prompt: str, api_inputs: Dict) -> Any:
@@ -252,6 +252,12 @@ class DallEPlugin(StreamingGenerator):
             raise SteamshipError(
                 "Model may not be overridden in runtime options. "
                 "Please configure 'model' when creating a plugin instance."
+            )
+
+        if options is not None and "size" in options:
+            raise SteamshipError(
+                "Size may not be overridden in runtime options. "
+                "Please configure 'size' when creating a plugin instance."
             )
 
         temp_config = DallEPlugin.DallEPluginConfig(**self.config.dict())
