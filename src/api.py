@@ -260,6 +260,12 @@ class DallEPlugin(StreamingGenerator):
                 "Please configure 'size' when creating a plugin instance."
             )
 
+        if options is not None and "quality" in options:
+            raise SteamshipError(
+                "Quality may not be overridden in runtime options. "
+                "Please configure 'quality' when creating a plugin instance."
+            )
+
         temp_config = DallEPlugin.DallEPluginConfig(**self.config.dict())
         temp_config.extend_with_dict(options, overwrite=True)
         validated_config = DallEPlugin.DallEPluginConfig(**temp_config.dict())

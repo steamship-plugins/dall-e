@@ -115,3 +115,6 @@ def test_no_override_of_model_at_runtime():
 
     with pytest.raises(SteamshipError):
         plugin._inputs_from_config_and_runtime_params(options={"size": "should fail"})
+
+    with pytest.raises(SteamshipError):
+        plugin._inputs_from_config_and_runtime_params(options={"quality": "should fail"})
