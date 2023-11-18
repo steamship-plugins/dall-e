@@ -1,2 +1,3 @@
 steamship==2.17.32
 openai==1.1.1
+requests

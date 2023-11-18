@@ -1,18 +1,24 @@
-"""Generator plugin for DALL-E."""
+"""Streaming Generator plugin for DALL-E."""
 import logging
 from enum import Enum
 from typing import Any, Dict, List, Optional, Type
 
 import openai
+import requests
 from openai import OpenAI
 from pydantic import Field, ValidationError, validator
-from steamship import Block, MimeTypes, Steamship, SteamshipError
-from steamship.data.block import BlockUploadType
+from steamship import MimeTypes, Steamship, SteamshipError
 from steamship.invocable import Config, InvocableResponse, InvocationContext
-from steamship.plugin.generator import Generator
 from steamship.plugin.inputs.raw_block_and_tag_plugin_input import RawBlockAndTagPluginInput
+from steamship.plugin.inputs.raw_block_and_tag_plugin_input_with_preallocated_blocks import (
+    RawBlockAndTagPluginInputWithPreallocatedBlocks,
+)
+from steamship.plugin.outputs.block_type_plugin_output import BlockTypePluginOutput
+from steamship.plugin.outputs.plugin_output import OperationType, OperationUnit, UsageReport
 from steamship.plugin.outputs.raw_block_and_tag_plugin_output import RawBlockAndTagPluginOutput
+from steamship.plugin.outputs.stream_complete_plugin_output import StreamCompletePluginOutput
 from steamship.plugin.request import PluginRequest
+from steamship.plugin.streaming_generator import StreamingGenerator
 
 
 class ModelEnum(str, Enum):
@@ -66,7 +72,7 @@ class StyleEnum(str, Enum):
         return list(map(lambda c: c.value, cls))
 
 
-class DallEPlugin(Generator):
+class DallEPlugin(StreamingGenerator):
     """Plugin for generating images from text prompts from DALL-E."""
 
     class DallEPluginConfig(Config):
@@ -79,15 +85,15 @@ class DallEPlugin(Generator):
         )
         model: str = Field(
             default="dall-e-2",
-            description=f"Model to use for image generation. Must be one of: {ModelEnum.list()}",
+            description=f"Model to use for image generation. Must be one of: {ModelEnum.list()}. Not available for runtime override.",
         )
         n: int = Field(
             1, gt=0, lt=11, description="Default number of images to generate for each prompt."
         )
         size: ImageSizeEnum = Field(
             "1024x1024",
-            description="Default size of the output images. Must be one of:"
-            f"{ImageSizeEnum.list()}.",
+            description="Size of the output images. Must be one of:"
+            f"{ImageSizeEnum.list()}. Not available for runtime override.",
         )
         max_retries: int = Field(
             8, gte=0, lt=16, description="Maximum number of retries to make when generating."
@@ -173,8 +179,8 @@ class DallEPlugin(Generator):
 
     def generate_with_retry(
         self, user: str, prompt: str, options: Optional[dict] = None
-    ) -> List[Block]:
-        """Generate image(s) with the options provided."""
+    ) -> List[str]:
+        """Generate image(s) with the options provided. Returns URLs of generated images."""
         logging.debug(f"Making OpenAI dall-e call on behalf of user with id: {user}")
 
         def _generate_with_retry(image_prompt: str, api_inputs: Dict) -> Any:
@@ -195,33 +201,63 @@ class DallEPlugin(Generator):
             raise SteamshipError(f"Invalid runtime parameterization of plugin: {ve}")
 
         openai_result = _generate_with_retry(image_prompt=prompt, api_inputs=inputs)
-        # logging.info("Retry statistics: " + json.dumps(_generate_with_retry.retry.statistics))
-
-        # Fetch data for images
-        urls = [obj.url for obj in openai_result.data]
-
-        return [
-            Block(url=url, mime_type=MimeTypes.PNG, upload_type=BlockUploadType.URL) for url in urls
-        ]
+        return [obj.url for obj in openai_result.data]
 
     def run(
-        self, request: PluginRequest[RawBlockAndTagPluginInput]
+        self, request: PluginRequest[RawBlockAndTagPluginInputWithPreallocatedBlocks]
     ) -> InvocableResponse[RawBlockAndTagPluginOutput]:
         """Run the image generator against all the text, combined."""
         prompt = " ".join([block.text for block in request.data.blocks if block.text is not None])
         user_id = self.context.user_id if self.context is not None else "testing"
-        generated_blocks = self.generate_with_retry(
-            prompt=prompt, user=user_id, options=request.data.options
+        urls = self.generate_with_retry(prompt=prompt, user=user_id, options=request.data.options)
+
+        usage = []
+        output_blocks = request.data.output_blocks
+        for idx, url in enumerate(urls):
+            resp = requests.get(url)
+            if resp.ok:
+                logging.debug(f"[{idx}] appending to block: {output_blocks[idx].id}")
+                output_blocks[idx].append_stream(resp.content)
+                output_blocks[idx].finish_stream()
+                usage.append(
+                    UsageReport(
+                        operation_type=OperationType.RUN,
+                        operation_unit=OperationUnit.UNITS,
+                        operation_amount=1,  # single image generated
+                        audit_id=f"{user_id}-{hash(prompt)}",  # do we want a better audit id ?
+                    )
+                )
+            else:
+                logging.error(
+                    f"generation failed for block during content retrieval: ({resp.status_code}, {resp.content})"
+                )
+                output_blocks[idx].abort_stream()
+
+        logging.debug("returning finished state for stream.")
+        return InvocableResponse(data=StreamCompletePluginOutput(usage=usage))
+
+    def determine_output_block_types(
+        self, request: PluginRequest[RawBlockAndTagPluginInput]
+    ) -> InvocableResponse[BlockTypePluginOutput]:
+        """Provide hints to engine on number of blocks and their mime-types."""
+        inputs = self._inputs_from_config_and_runtime_params(request.data.options)
+        num_images = inputs.get("n", 1)
+        block_types_to_create = [MimeTypes.PNG] * num_images
+        return InvocableResponse(
+            data=BlockTypePluginOutput(block_types_to_create=block_types_to_create)
         )
 
-        return InvocableResponse(data=RawBlockAndTagPluginOutput(blocks=generated_blocks))
-
     def _inputs_from_config_and_runtime_params(self, options: Optional[dict]) -> dict:
-
         if options is not None and "model" in options:
             raise SteamshipError(
                 "Model may not be overridden in runtime options. "
                 "Please configure 'model' when creating a plugin instance."
+            )
+
+        if options is not None and "size" in options:
+            raise SteamshipError(
+                "Size may not be overridden in runtime options. "
+                "Please configure 'size' when creating a plugin instance."
             )
 
         temp_config = DallEPlugin.DallEPluginConfig(**self.config.dict())
